@@ -19,3 +19,5 @@ jobs:
       - run: node --check lib/rivalGame.js
       - run: node --check backend/index.js
       - run: node --test tests/*.test.cjs
+      - run: npx expo export --platform web
+      - run: test -f dist/index.html
