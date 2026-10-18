@@ -1,174 +1,98 @@
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ScrollView, Text, TextInput, TouchableOpacity, View, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { createGame } from "../../lib/rivalGame";
 
-const RIVAL_KEY = "RIVAL_AI_CURRENT_RIVAL";
+const RED = "#E50914";
+const card = { padding: 15, marginTop: 9, borderRadius: 12 } as const;
 
 export default function CreateRivalScreen() {
   const router = useRouter();
-
   const [name, setName] = useState("");
   const [sport, setSport] = useState<"gym" | "soccer" | "tennis">("gym");
-  const [personality, setPersonality] = useState<
-    "aggressive" | "mocking" | "cold" | "respectful"
-  >("aggressive");
+  const [personality, setPersonality] = useState<"aggressive" | "mocking" | "cold" | "respectful">("aggressive");
+  const [days, setDays] = useState(14);
+  const [creating, setCreating] = useState(false);
 
-  const createRival = async () => {
-    if (!name.trim()) return;
-
-    const rival = {
-      name,
-      sport,
-      personality,
-      createdAt: Date.now(),
-      level: 1,
-      xp: 0
-    };
-
-    await AsyncStorage.setItem(RIVAL_KEY, JSON.stringify(rival));
-    router.replace("/rival/room");
+  const start = async () => {
+    if (creating) return;
+    if (!name.trim()) {
+      Alert.alert("Choose a name", "Your rival needs a name before the battle begins.");
+      return;
+    }
+    setCreating(true);
+    try {
+      await createGame({ name, sport, personality, durationDays: days });
+      router.replace("/rival/room");
+    } catch (error: any) {
+      Alert.alert("Could not create rival", error?.message || "Please try again.");
+    } finally {
+      setCreating(false);
+    }
   };
 
+  const option = (label: string, value: string | number, selected: boolean, onPress: () => void) => (
+    <TouchableOpacity
+      key={String(value)}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[card, { backgroundColor: selected ? "#21090b" : "#151515", borderWidth: 1, borderColor: selected ? RED : "#303030" }]}
+    >
+      <Text style={{ color: selected ? "#fff" : "#aaa", fontSize: 15, fontWeight: selected ? "700" : "500" }}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#000", padding: 25 }}>
+    <View style={{ flex: 1, backgroundColor: "#050505" }}>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
+        <TouchableOpacity onPress={() => router.back()}><Text style={{ color: "#aaa", fontSize: 16 }}>← Back</Text></TouchableOpacity>
+        <Text style={{ color: RED, fontSize: 13, fontWeight: "800", marginTop: 30, letterSpacing: 2 }}>RIVAL.AI / NEW ARC</Text>
+        <Text style={{ color: "#fff", fontSize: 34, fontWeight: "900", marginTop: 8 }}>Build your opponent.</Text>
+        <Text style={{ color: "#999", fontSize: 15, marginTop: 10, lineHeight: 22 }}>Log your actual work. Face a simulated rival. Win the arc with consistency.</Text>
 
-      {/* BACK BUTTON */}
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={{ marginBottom: 20 }}
-      >
-        <Text
-          style={{
-            color: "#888",
-            fontSize: 16,
-            fontWeight: "600"
-          }}
-        >
-          ← Back
-        </Text>
-      </TouchableOpacity>
+        <Text style={{ color: "#ccc", fontSize: 15, fontWeight: "700", marginTop: 28 }}>Rival name</Text>
+        <TextInput
+          value={name} onChangeText={setName} maxLength={30}
+          autoCapitalize="words" placeholder="e.g. Shadow" placeholderTextColor="#777"
+          style={{ color: "#fff", fontSize: 17, marginTop: 9, padding: 16, backgroundColor: "#151515", borderRadius: 12 }}
+        />
 
-      {/* HEADER */}
-      <Text style={{ color: "#E50914", fontSize: 14, fontWeight: "700" }}>
-        CREATE YOUR RIVAL
-      </Text>
-      <Text
-        style={{
-          color: "#fff",
-          fontSize: 28,
-          fontWeight: "800",
-          marginTop: 6
-        }}
-      >
-        Name the one chasing you
-      </Text>
+        <Text style={{ color: "#ccc", fontSize: 15, fontWeight: "700", marginTop: 28 }}>Arena</Text>
+        {option("🏋️  Gym", "gym", sport === "gym", () => setSport("gym"))}
+        {option("⚽  Soccer", "soccer", sport === "soccer", () => setSport("soccer"))}
+        {option("🎾  Tennis", "tennis", sport === "tennis", () => setSport("tennis"))}
 
-      {/* NAME INPUT */}
-      <Text style={{ color: "#888", marginTop: 25, marginBottom: 6 }}>
-        Rival Name
-      </Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="e.g. Marcus"
-        placeholderTextColor="#555"
-        style={{
-          backgroundColor: "#111",
-          color: "#fff",
-          padding: 14,
-          borderRadius: 10,
-          fontSize: 16
-        }}
-      />
+        <Text style={{ color: "#ccc", fontSize: 15, fontWeight: "700", marginTop: 28 }}>Personality</Text>
+        {option("Aggressive — intense pressure", "aggressive", personality === "aggressive", () => setPersonality("aggressive"))}
+        {option("Mocking — competitive trash talk", "mocking", personality === "mocking", () => setPersonality("mocking"))}
+        {option("Cold — few words, high standards", "cold", personality === "cold", () => setPersonality("cold"))}
+        {option("Respectful — supportive competition", "respectful", personality === "respectful", () => setPersonality("respectful"))}
 
-      {/* SPORT SELECT */}
-      <Text style={{ color: "#888", marginTop: 25, marginBottom: 10 }}>
-        Arena
-      </Text>
-      {[
-        { id: "gym", label: "🏋️ Gym" },
-        { id: "soccer", label: "⚽ Soccer Field" },
-        { id: "tennis", label: "🎾 Court" }
-      ].map(opt => (
+        <Text style={{ color: "#ccc", fontSize: 15, fontWeight: "700", marginTop: 28 }}>Battle duration</Text>
+        <View style={{ flexDirection: "row", gap: 9 }}>
+          {[7, 14, 30].map((n) => (
+            <TouchableOpacity
+              key={n}
+              onPress={() => setDays(n)}
+              style={{ flex: 1, marginTop: 10, padding: 13, alignItems: "center", borderRadius: 12, borderWidth: 1, backgroundColor: days === n ? "#21090b" : "#151515", borderColor: days === n ? RED : "#303030" }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{n} DAYS</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <TouchableOpacity
-          key={opt.id}
-          onPress={() => setSport(opt.id as any)}
-          style={{
-            backgroundColor: sport === opt.id ? "#1a0000" : "#111",
-            borderWidth: 1,
-            borderColor: sport === opt.id ? "#E50914" : "#222",
-            padding: 14,
-            borderRadius: 10,
-            marginBottom: 10
-          }}
+          disabled={creating} onPress={start}
+          style={{ backgroundColor: RED, marginTop: 35, borderRadius: 14, padding: 19, opacity: creating ? 0.5 : 1 }}
         >
-          <Text style={{ color: "#fff", fontSize: 16 }}>
-            {opt.label}
+          <Text style={{ textAlign: "center", color: "white", fontSize: 18, fontWeight: "900" }}>
+            {creating ? "Creating…" : "START YOUR ARC →"}
           </Text>
         </TouchableOpacity>
-      ))}
-
-      {/* PERSONALITY */}
-      <Text style={{ color: "#888", marginTop: 20, marginBottom: 10 }}>
-        Personality
-      </Text>
-      {[
-        { id: "aggressive", label: "Aggressive — pushes hard" },
-        { id: "mocking", label: "Mocking — talks trash" },
-        { id: "cold", label: "Cold — says less, does more" },
-        { id: "respectful", label: "Respectful — competitive but fair" }
-      ].map(opt => (
-        <TouchableOpacity
-          key={opt.id}
-          onPress={() => setPersonality(opt.id as any)}
-          style={{
-            backgroundColor: personality === opt.id ? "#111" : "#0a0a0a",
-            borderWidth: 1,
-            borderColor: personality === opt.id ? "#00ff88" : "#222",
-            padding: 14,
-            borderRadius: 10,
-            marginBottom: 8
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 15 }}>
-            {opt.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-
-      {/* CREATE BUTTON */}
-      <TouchableOpacity
-        onPress={createRival}
-        style={{
-          backgroundColor: "#E50914",
-          padding: 18,
-          borderRadius: 14,
-          marginTop: "auto"
-        }}
-      >
-        <Text
-          style={{
-            color: "#fff",
-            fontSize: 20,
-            fontWeight: "800",
-            textAlign: "center"
-          }}
-        >
-          Create Rival
+        <Text style={{ textAlign: "center", color: "#777", marginTop: 12, lineHeight: 19 }}>
+          Rival training scores are simulated. Only your logged sessions represent real activity.
         </Text>
-        <Text
-          style={{
-            color: "#ffcccc",
-            fontSize: 12,
-            textAlign: "center",
-            marginTop: 4
-          }}
-        >
-          You won’t outrun them.
-        </Text>
-      </TouchableOpacity>
-
+      </ScrollView>
     </View>
   );
 }
