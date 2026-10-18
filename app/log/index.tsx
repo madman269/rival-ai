@@ -20,6 +20,7 @@ export default function LogbookScreen() {
 
   const status = rival && game ? getStatus(rival, game) : null;
   const sessions = (game?.sessions || []).slice().reverse();
+  const legacyLogs = (game?.logs || []).slice().reverse();
 
   return (
     <View style={{ flex: 1, backgroundColor: "#050505", paddingHorizontal: 20, paddingTop: 23 }}>
@@ -37,7 +38,7 @@ export default function LogbookScreen() {
       )}
       {loading ? <ActivityIndicator color={RED} style={{ marginTop: 45 }} /> : (
         <ScrollView style={{ marginTop: 24 }} contentContainerStyle={{ paddingBottom: 45 }}>
-          {sessions.length === 0 ? (
+          {sessions.length === 0 && legacyLogs.length === 0 ? (
             <View style={{ marginTop: 35 }}>
               <Text style={{ color: "#fff", fontSize: 19, fontWeight: "800", textAlign: "center" }}>No sessions yet</Text>
               <Text style={{ color: "#888", marginTop: 9, textAlign: "center" }}>Log your first workout to begin earning XP.</Text>
@@ -57,6 +58,20 @@ export default function LogbookScreen() {
               </Text>
             </View>
           ))}
+          {legacyLogs.length > 0 && (
+            <>
+              <Text style={{ color: "#888", marginTop: 25, marginBottom: 13, fontWeight: "800", letterSpacing: 1 }}>OLDER LOG ENTRIES</Text>
+              {legacyLogs.map((entry: any, index: number) => (
+                <View key={"legacy-" + index} style={{ backgroundColor: "#111", borderRadius: 12, padding: 15, marginBottom: 10 }}>
+                  <Text style={{ color: entry.sender === "rival" ? RED : "#fff", fontWeight: "800" }}>
+                    {entry.sender === "rival" ? "Rival" : "You"}
+                  </Text>
+                  <Text style={{ color: "#ccc", marginTop: 6 }}>{entry.text}</Text>
+                  {entry.xp ? <Text style={{ color: "#999", marginTop: 6 }}>+{entry.xp} XP (legacy)</Text> : null}
+                </View>
+              ))}
+            </>
+          )}
         </ScrollView>
       )}
     </View>
