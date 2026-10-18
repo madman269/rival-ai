@@ -18,6 +18,14 @@ jobs:
       - run: npx tsc --noEmit
       - run: node --check lib/rivalGame.js
       - run: node --check backend/index.js
-      - run: node --test tests/*.test.cjs
+      - run: node --test tests/game.test.cjs tests/backend.test.cjs
       - run: npx expo export --platform web
       - run: test -f dist/index.html
+      - run: npm install --no-save --package-lock=false playwright
+      - run: node --test tests/web-smoke.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rival-ai-browser-screenshot
+          path: rival-ai-*.png
+          if-no-files-found: ignore
