@@ -78,7 +78,7 @@ export default function HomeScreen() {
           {secondary("Shop", "Cosmetics and arenas", "/shop")}
           {status?.ended ? secondary("New battle", "Create a new rival and reset the arc", "/rival/create") : null}
           <Text style={{ color: "#626262", textAlign: "center", marginTop: 29, fontSize: 12, lineHeight: 18 }}>
-            Your rival's XP is a simulated challenge. Train at your own pace and record only real sessions.
+            Rival XP is a simulated challenge. Train at your own pace and record only real sessions.
           </Text>
         </>
       )}
