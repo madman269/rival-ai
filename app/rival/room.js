@@ -135,7 +135,7 @@ export default function RivalRoom() {
           <RivalStatusCard
             playerXP={status.playerXP} rivalXP={status.rivalXP}
             playerLevel={status.playerLevel} rivalLevel={status.rivalLevel}
-            playerRank={"Level " + status.playerLevel} rivalRank={"Level " + status.rivalLevel}
+            playerRank={status.playerRank} rivalRank={status.rivalRank}
           />
           <View style={{ flexDirection: "row", justifyContent: "space-around", paddingVertical: 13 }}>
             <Text style={{ color: "#eee", fontWeight: "700" }}>🔥 {status.streak}-day streak</Text>
