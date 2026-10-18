@@ -1,50 +1,88 @@
-# Welcome to your Expo app 👋
+# Rival.AI
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Someone is always ahead.**
 
-## Get started
+Rival.AI is a React Native (Expo) training accountability game. Create a competitive AI character, log **real** workouts, and compete against **simulated** rival XP over a timed arc. The scores are a game, not a fitness measurement or a claim that your rival physically works out.
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- Rival creator with gym, soccer, and tennis arenas and four personalities
+- 7-, 14-, or 30-day seasons and an end-of-arc victory/defeat/draw screen
+- Activity, minutes, notes and session history saved locally via AsyncStorage
+- XP, levels, streaks, simulated rival scoring for missed days, and logbook
+- Rival chat that uses the OpenAI API through a private backend
+- Offline logging that works without an API key; chat displays a clear error while disconnected
+- Settings for resetting the logbook or removing the rival
 
-2. Start the app
+## Local setup
 
-   ```bash
-   npx expo start
-   ```
+Requirements: Node.js 20+, npm, Expo Go or an emulator, and an OpenAI API key for optional live chat only.
 
-In the output, you'll find options to open the app in a
+1. From the repository root, install Expo dependencies:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+    npm install
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+2. In a second terminal, install backend dependencies:
 
-## Get a fresh project
+    cd backend
+    npm install
 
-When you're ready, run:
+   Copy backend/.env.example to backend/.env. Set OPENAI_API_KEY in backend/.env (server-side only). Start the backend:
 
-```bash
-npm run reset-project
-```
+    npm run dev
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+   Verify at http://localhost:3000/health. The aiConfigured property is true when a key is loaded.
 
-## Learn more
+3. In the repository root, create an untracked .env.local file containing:
 
-To learn more about developing your project with Expo, look at the following resources:
+    EXPO_PUBLIC_RIVAL_API_URL=http://YOUR_COMPUTER_LAN_IP:3000
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+   Use your computer's Wi-Fi IP address when testing on a physical phone on the same network; localhost does not reach your computer from a phone. For the Android emulator use http://10.0.2.2:3000; for iOS simulator localhost usually works. Production requires a deployed HTTPS backend.
 
-## Join the community
+4. From the repository root run:
 
-Join our community of developers creating universal apps.
+    npx expo start -c
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   Open with Expo Go or a configured emulator.
+
+Training, XP, and the logbook work without the backend. Rival chat only generates AI messages with a functioning server and key.
+
+## API
+
+GET /health reports service health and AI configuration status.
+
+POST /rival/respond accepts a JSON body containing rivalId, userText, and optional memory. Supported personas: TYRANT, SILENT_PRO, FALLEN_LEGEND. Successful responses return JSON containing a text field.
+
+## XP scoring
+
+- First session each day: player receives 20 XP plus 5 XP per 15 full minutes, up to 20 bonus XP.
+- On the first session: simulated rival receives 24 XP plus 4 XP per 20 full minutes, up to 16 bonus XP.
+- Additional sessions award 5 XP to each competitor.
+- Calendar days without training award 12 simulated rival XP when the app is next opened.
+- The streak counts consecutive days with at least one session, including yesterday if today is pending.
+- After the configured number of days, the higher XP total wins.
+
+Rival minutes and score are algorithmic simulations. User training is self-reported and is not verified.
+
+## Development and security
+
+- Expo app: app/
+- Game and streak logic: lib/rivalGame.js
+- Rival room: app/rival/room.js
+- Backend: backend/index.js
+- Frontend API URL: app/src/api/rivalApi.js
+
+The OpenAI key must remain on the backend. Do not place it in Expo public environment variables. The backend provides rate limiting, capped inputs, and optional allowed browser origins via ALLOWED_ORIGINS.
+
+**Important security note:** An older commit in this publicly visible repository tracked backend/.env. Deleting it on this branch does not erase Git history. Revoke/rotate any credentials previously stored there before using or deploying the app. Current per-IP rate limiting does not replace user authentication; add authentication and usage controls before a public launch.
+
+Training data remains on-device; reinstalling or clearing app data can lose it. There is no cloud sync or account system yet.
+
+Quality checks:
+
+    npm run lint
+    npx tsc --noEmit
+    node --check lib/rivalGame.js
+    node --check backend/index.js
+
+Device testing is also recommended before release.
