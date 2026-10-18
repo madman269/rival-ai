@@ -1,180 +1,87 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { getStatus, readGame } from "../lib/rivalGame";
 
-const RIVAL_KEY = "RIVAL_AI_CURRENT_RIVAL";
+const RED = "#E50914";
+const cardStyle = { backgroundColor: "#131313", borderWidth: 1, borderColor: "#292929", borderRadius: 16, padding: 18 };
+const button = { backgroundColor: RED, padding: 18, borderRadius: 13, alignItems: "center" };
 
 export default function HomeScreen() {
   const router = useRouter();
- const [rival, setRival] = useState(null);
+  const [rival, setRival] = useState(null);
+  const [game, setGame] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoading(true);
+    readGame().then(({ rival: current, state }) => {
+      if (!active) return;
+      setRival(current);
+      setGame(state);
+      setError("");
+    }).catch((e) => active && setError(e?.message || "Unable to load Rival AI"))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []));
 
-  useEffect(() => {
-    loadRival();
-  }, []);
-
-  const loadRival = async () => {
-    const raw = await AsyncStorage.getItem(RIVAL_KEY);
-    if (raw) setRival(JSON.parse(raw));
-  };
+  const status = rival && game ? getStatus(rival, game) : null;
+  const secondary = (title, description, route) => (
+    <TouchableOpacity onPress={() => router.push(route)} style={{ ...cardStyle, marginTop: 13 }}>
+      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>{title} →</Text>
+      <Text style={{ color: "#858585", fontSize: 13, marginTop: 5 }}>{description}</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000", padding: 30 }}>
-      
-      {/* BRAND */}
-      <View style={{ alignItems: "center", marginTop: 20 }}>
-        <Image
-          source={require("../assets/icon.png")}
-          style={{ width: 90, height: 90, marginBottom: 15 }}
-          resizeMode="contain"
-        />
-        <Text style={{ fontSize: 34, fontWeight: "800", color: "#fff" }}>
-          Rival.AI
-        </Text>
-        <Text style={{ color: "#888", marginTop: 6 }}>
-          Someone is always ahead.
-        </Text>
+    <ScrollView style={{ flex: 1, backgroundColor: "#050505" }} contentContainerStyle={{ padding: 25, paddingTop: 50, paddingBottom: 50 }}>
+      <View style={{ alignItems: "center" }}>
+        <Image source={require("../assets/icon.png")} style={{ width: 86, height: 86 }} resizeMode="contain" />
+        <Text style={{ color: "#fff", fontSize: 37, fontWeight: "900", marginTop: 11 }}>Rival<Text style={{ color: RED }}>.AI</Text></Text>
+        <Text style={{ color: "#999", fontSize: 14, marginTop: 5 }}>Someone is always ahead.</Text>
       </View>
-
-      {/* MAIN ACTION */}
-      <TouchableOpacity
-        onPress={() =>
-          rival
-            ? router.push("/rival/room")
-            : router.push("/rival/create")
-        }
-        style={{
-          backgroundColor: "#E50914",
-          padding: 18,
-          borderRadius: 14,
-          marginTop: 50
-        }}
-      >
-        <Text
-          style={{
-            color: "#fff",
-            fontSize: 20,
-            fontWeight: "700",
-            textAlign: "center"
-          }}
-        >
-          {rival ? "Enter Rival Room" : "Create Your Rival"}
-        </Text>
-
-        {rival && (
-          <Text
-            style={{
-              color: "#ffcccc",
-              fontSize: 13,
-              textAlign: "center",
-              marginTop: 4
-            }}
-          >
-            {rival.name} • {rival.personality.toUpperCase()} • LV {rival.level}
+      {loading ? <ActivityIndicator color={RED} style={{ marginTop: 50 }} /> : (
+        <>
+          {error ? <Text style={{ color: "#ff8f98", marginTop: 20, textAlign: "center" }}>{error}</Text> : null}
+          {status ? (
+            <View style={{ ...cardStyle, marginTop: 42 }}>
+              <Text style={{ color: RED, fontWeight: "900", fontSize: 12, letterSpacing: 2 }}>CURRENT RIVAL · {rival.sport.toUpperCase()}</Text>
+              <Text style={{ color: "#fff", fontSize: 27, fontWeight: "900", marginTop: 9 }}>{rival.name}</Text>
+              <Text style={{ color: "#aaa", fontSize: 14, marginTop: 4 }}>{rival.personality.toUpperCase()} · {status.ended ? "ARC COMPLETE" : status.daysLeft + " DAYS REMAINING"}</Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
+                <View><Text style={{ color: "#888", fontWeight: "800", fontSize: 11 }}>YOU</Text><Text style={{ color: "#fff", fontSize: 30, fontWeight: "900" }}>{status.playerXP}</Text></View>
+                <View><Text style={{ color: "#888", fontWeight: "800", fontSize: 11 }}>RIVAL</Text><Text style={{ color: RED, fontSize: 30, fontWeight: "900" }}>{status.rivalXP}</Text></View>
+              </View>
+              <View style={{ height: 7, backgroundColor: "#292929", borderRadius: 9, marginTop: 14, overflow: "hidden" }}>
+                <View style={{ height: "100%", width: (status.progress * 100) + "%", backgroundColor: RED }} />
+              </View>
+              <Text style={{ color: "#aaa", fontSize: 13, marginTop: 12 }}>🔥 {status.streak}-day streak · {status.trainedDays} logged days</Text>
+            </View>
+          ) : (
+            <View style={{ marginTop: 53, paddingHorizontal: 15 }}>
+              <Text style={{ color: "#fff", fontSize: 27, fontWeight: "900", textAlign: "center" }}>Meet your competition.</Text>
+              <Text style={{ color: "#a0a0a0", lineHeight: 23, textAlign: "center", marginTop: 13 }}>
+                Create a rival, log real training, and battle across a timed season.
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => router.push(rival ? "/rival/room" : "/rival/create")}
+            style={{ ...button, marginTop: 27 }}>
+            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 18 }}>
+              {status?.ended ? "VIEW YOUR RESULTS →" : rival ? "ENTER RIVAL ROOM →" : "CREATE YOUR RIVAL →"}
+            </Text>
+          </TouchableOpacity>
+          {secondary("Training logbook", "Your sessions, XP and history", "/log")}
+          {secondary("Settings", "Manage progress and your rival", "/settings")}
+          {secondary("Shop", "Cosmetics and arenas", "/shop")}
+          {status?.ended ? secondary("New battle", "Create a new rival and reset the arc", "/rival/create") : null}
+          <Text style={{ color: "#626262", textAlign: "center", marginTop: 29, fontSize: 12, lineHeight: 18 }}>
+            Your rival's XP is a simulated challenge. Train at your own pace and record only real sessions.
           </Text>
-        )}
-      </TouchableOpacity>
-
-      {/* SECONDARY ACTIONS */}
-      <View style={{ marginTop: 25 }}>
-        <TouchableOpacity
-          onPress={() => router.push("/rival/create")}
-          style={{
-            borderWidth: 1,
-            borderColor: "#E50914",
-            padding: 15,
-            borderRadius: 12,
-            marginBottom: 15
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 18, textAlign: "center" }}>
-            Create Rival
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/log")}
-          style={{
-            borderWidth: 1,
-            borderColor: "#222",
-            padding: 15,
-            borderRadius: 12
-          }}
-        >
-          <Text style={{ color: "#aaa", fontSize: 18, textAlign: "center" }}>
-            Logbook
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* FOOTER ACTIONS */}
-      <View style={{ marginTop: "auto", paddingBottom: 20 }}>
-        <TouchableOpacity
-          onPress={() => router.push("/shop")}
-          style={{
-            backgroundColor: "#111",
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: "#222"
-          }}
-        >
-          <Text
-            style={{
-              color: "#fff",
-              fontSize: 17,
-              textAlign: "center",
-              fontWeight: "600"
-            }}
-          >
-            Shop
-          </Text>
-          <Text
-            style={{
-              color: "#777",
-              fontSize: 12,
-              textAlign: "center",
-              marginTop: 4
-            }}
-          >
-            Skins • Rival Arenas • Cosmetics
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          style={{
-            backgroundColor: "#111",
-            padding: 16,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: "#222"
-          }}
-        >
-          <Text
-            style={{
-              color: "#aaa",
-              fontSize: 17,
-              textAlign: "center",
-              fontWeight: "600"
-            }}
-          >
-            Settings
-          </Text>
-          <Text
-            style={{
-              color: "#666",
-              fontSize: 12,
-              textAlign: "center",
-              marginTop: 4
-            }}
-          >
-            Preferences • Notifications • Data
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        </>
+      )}
+    </ScrollView>
   );
 }
