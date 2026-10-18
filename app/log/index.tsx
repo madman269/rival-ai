@@ -24,7 +24,7 @@ export default function LogbookScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#050505", paddingHorizontal: 20, paddingTop: 23 }}>
-      <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 10 }}>
+      <TouchableOpacity onPress={() => router.replace("/")} style={{ paddingVertical: 10 }}>
         <Text style={{ color: "#aaa", fontSize: 16 }}>← Back</Text>
       </TouchableOpacity>
       <Text style={{ color: RED, fontSize: 12, letterSpacing: 2, fontWeight: "900", marginTop: 18 }}>TRAINING HISTORY</Text>
