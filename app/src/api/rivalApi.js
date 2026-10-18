@@ -1,31 +1,39 @@
-// src/api/rivalApi.js
-
-// Physical phone (Expo Go) → use your PC's LAN IP
-const BASE_URL = "http://192.168.0.166:3000";
+/**
+ * Point this at your running Rival API, not an OpenAI URL.
+ * The OpenAI API key belongs on the backend and must never ship in Expo.
+ *
+ * Example .env in the Expo project root:
+ * EXPO_PUBLIC_RIVAL_API_URL=http://192.168.1.42:3000
+ */
+const BASE_URL = (process.env.EXPO_PUBLIC_RIVAL_API_URL || "").trim().replace(/\/+$/, "");
 
 export async function fetchRivalReply({ rivalId, userText, memory }) {
-  if (!userText || !userText.trim()) {
-    return "";
+  if (!String(userText || "").trim()) return "";
+  if (!BASE_URL) {
+    throw new Error("AI unavailable: set EXPO_PUBLIC_RIVAL_API_URL to your backend address.");
   }
-
-  const res = await fetch(`${BASE_URL}/rival/respond`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      rivalId,
-      userText,
-      memory,
-    }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error("Rival API error:", data);
-    throw new Error(data?.error || "Rival request failed");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(BASE_URL + "/rival/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rivalId,
+        userText: String(userText).slice(0, 1400),
+        memory,
+      }),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.message || data?.error || "Rival API request failed");
+    }
+    if (typeof data.text !== "string" || !data.text.trim()) {
+      throw new Error("The rival returned an empty response.");
+    }
+    return data.text.trim();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data?.text || "";
 }
