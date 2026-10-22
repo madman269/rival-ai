@@ -1,152 +1,79 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
-import {
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { getStatus, readGame } from "../../lib/rivalGame";
 
-const LOG_KEY = "RIVAL_AI_LOG_STATE";
-
+const RED = "#E50914";
 export default function LogbookScreen() {
   const router = useRouter();
-  const [logs, setLogs] = useState<any[]>([]);
+  const [rival, setRival] = useState<any>(null);
+  const [game, setGame] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    readGame().then(({ rival, state }) => {
+      if (active) { setRival(rival); setGame(state); }
+    }).finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []));
 
-  const loadLogs = async () => {
-    const raw = await AsyncStorage.getItem(LOG_KEY);
-    if (!raw) return;
-
-    const parsed = JSON.parse(raw);
-    setLogs(parsed.logs || []);
-  };
+  const status = rival && game ? getStatus(rival, game) : null;
+  const sessions = (game?.sessions || []).slice().reverse();
+  const legacyLogs = (game?.logs || []).slice().reverse();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000", padding: 20 }}>
-      
-      {/* BACK BUTTON */}
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text
-          style={{
-            color: "#888",
-            fontSize: 16,
-            fontWeight: "600",
-            marginBottom: 10
-          }}
-        >
-          ← Back
-        </Text>
+    <View style={{ flex: 1, backgroundColor: "#050505", paddingHorizontal: 20, paddingTop: 23 }}>
+      <TouchableOpacity onPress={() => router.replace("/")} style={{ paddingVertical: 10 }}>
+        <Text style={{ color: "#aaa", fontSize: 16 }}>← Back</Text>
       </TouchableOpacity>
-
-      {/* HEADER */}
-      <Text
-        style={{
-          color: "#E50914",
-          fontSize: 13,
-          fontWeight: "800"
-        }}
-      >
-        LOGBOOK
-      </Text>
-
-      <Text
-        style={{
-          color: "#fff",
-          fontSize: 28,
-          fontWeight: "900",
-          marginBottom: 20
-        }}
-      >
-        Your Work vs Theirs
-      </Text>
-
-      {/* EMPTY STATE */}
-      {logs.length === 0 && (
-        <View
-          style={{
-            marginTop: 60,
-            alignItems: "center"
-          }}
-        >
-          <Text style={{ color: "#777", fontSize: 16 }}>
-            No logs yet.
-          </Text>
-          <Text style={{ color: "#555", marginTop: 6 }}>
-            The rival is waiting.
-          </Text>
+      <Text style={{ color: RED, fontSize: 12, letterSpacing: 2, fontWeight: "900", marginTop: 18 }}>TRAINING HISTORY</Text>
+      <Text style={{ color: "#fff", fontSize: 30, fontWeight: "900", marginTop: 4 }}>The Logbook</Text>
+      {status && (
+        <View style={{ flexDirection: "row", backgroundColor: "#151515", padding: 18, borderRadius: 14, marginTop: 21, justifyContent: "space-between" }}>
+          <View><Text style={{ color: "#888", fontSize: 12 }}>YOUR XP</Text><Text style={{ color: "#fff", fontSize: 25, fontWeight: "900" }}>{status.playerXP}</Text></View>
+          <View><Text style={{ color: "#888", fontSize: 12 }}>RIVAL XP</Text><Text style={{ color: RED, fontSize: 25, fontWeight: "900" }}>{status.rivalXP}</Text></View>
+          <View><Text style={{ color: "#888", fontSize: 12 }}>BEST STREAK</Text><Text style={{ color: "#fff", fontSize: 25, fontWeight: "900" }}>{Math.max(status.streak, game.bestStreak || 0)}</Text></View>
         </View>
       )}
-
-      {/* LOG LIST */}
-      <ScrollView>
-        {logs.map((log, index) => {
-          const isRival = log.sender === "rival";
-
-          return (
-            <View
-              key={index}
-              style={{
-                backgroundColor: isRival ? "#1a0000" : "#111",
-                borderRadius: 12,
-                padding: 14,
-                marginBottom: 12,
-                borderLeftWidth: isRival ? 4 : 0,
-                borderLeftColor: isRival ? "#E50914" : "transparent"
-              }}
-            >
-              <Text
-                style={{
-                  color: isRival ? "#ffb3b3" : "#fff",
-                  fontWeight: isRival ? "700" : "500",
-                  fontSize: 15
-                }}
-              >
-                {isRival ? "Rival" : "You"}
-              </Text>
-
-              <Text
-                style={{
-                  color: "#ddd",
-                  marginTop: 6,
-                  fontSize: 15
-                }}
-              >
-                {log.text}
-              </Text>
-
-              {log.taunt && (
-                <Text
-                  style={{
-                    color: "#E50914",
-                    fontSize: 12,
-                    fontStyle: "italic",
-                    marginTop: 6
-                  }}
-                >
-                  “{log.taunt}”
-                </Text>
-              )}
-
-              {log.xp && (
-                <Text
-                  style={{
-                    color: "#777",
-                    fontSize: 12,
-                    marginTop: 6
-                  }}
-                >
-                  +{log.xp} XP
-                </Text>
-              )}
+      {loading ? <ActivityIndicator color={RED} style={{ marginTop: 45 }} /> : (
+        <ScrollView style={{ marginTop: 24 }} contentContainerStyle={{ paddingBottom: 45 }}>
+          {sessions.length === 0 && legacyLogs.length === 0 ? (
+            <View style={{ marginTop: 35 }}>
+              <Text style={{ color: "#fff", fontSize: 19, fontWeight: "800", textAlign: "center" }}>No sessions yet</Text>
+              <Text style={{ color: "#888", marginTop: 9, textAlign: "center" }}>Log your first workout to begin earning XP.</Text>
+              <TouchableOpacity onPress={() => router.push(rival ? "/rival/room" : "/rival/create")}
+                style={{ backgroundColor: RED, padding: 16, marginTop: 20, borderRadius: 12 }}>
+                <Text style={{ color: "#fff", fontWeight: "900", textAlign: "center" }}>START TRAINING →</Text>
+              </TouchableOpacity>
             </View>
-          );
-        })}
-      </ScrollView>
+          ) : sessions.map((s: any) => (
+            <View key={s.id} style={{ padding: 17, marginBottom: 12, borderRadius: 14, backgroundColor: "#161616", borderWidth: 1, borderColor: "#303030" }}>
+              <Text style={{ color: "#919191", fontSize: 12, fontWeight: "800" }}>{s.day}</Text>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", marginTop: 5 }}>{s.activity}</Text>
+              <Text style={{ color: "#ccc", marginTop: 6 }}>{s.minutes} minutes · +{s.xp} XP</Text>
+              {s.detail ? <Text style={{ color: "#aaa", marginTop: 7, lineHeight: 20 }}>{s.detail}</Text> : null}
+              <Text style={{ color: "#ff999f", marginTop: 10, fontSize: 12 }}>
+                Simulated rival: {s.rivalMinutes} min · +{s.opponentXP} XP
+              </Text>
+            </View>
+          ))}
+          {legacyLogs.length > 0 && (
+            <>
+              <Text style={{ color: "#888", marginTop: 25, marginBottom: 13, fontWeight: "800", letterSpacing: 1 }}>OLDER LOG ENTRIES</Text>
+              {legacyLogs.map((entry: any, index: number) => (
+                <View key={"legacy-" + index} style={{ backgroundColor: "#111", borderRadius: 12, padding: 15, marginBottom: 10 }}>
+                  <Text style={{ color: entry.sender === "rival" ? RED : "#fff", fontWeight: "800" }}>
+                    {entry.sender === "rival" ? "Rival" : "You"}
+                  </Text>
+                  <Text style={{ color: "#ccc", marginTop: 6 }}>{entry.text}</Text>
+                  {entry.xp ? <Text style={{ color: "#999", marginTop: 6 }}>+{entry.xp} XP (legacy)</Text> : null}
+                </View>
+              ))}
+            </>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }

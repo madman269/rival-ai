@@ -1,0 +1,39 @@
+name: Rival AI checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix backend
+      - run: npm run lint -- --max-warnings=0
+      - run: npx tsc --noEmit
+      - run: node --check lib/rivalGame.js
+      - run: node --check backend/index.js
+      - run: node --check scripts/check-backend.cjs
+      - run: npm audit --prefix backend --audit-level=high
+      - run: node --test tests/game.test.cjs tests/backend.test.cjs tests/retention-simulation.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rival-ai-synthetic-7-day-cohort
+          path: test-results/simulated-cohort.json
+          if-no-files-found: ignore
+      - run: npx expo export --platform web
+      - run: test -f dist/index.html
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/web-smoke.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rival-ai-browser-screenshot
+          path: rival-ai-*.png
+          if-no-files-found: ignore

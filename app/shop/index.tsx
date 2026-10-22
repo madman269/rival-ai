@@ -19,7 +19,7 @@ export default function ShopScreen() {
           marginTop: 6
         }}
       >
-        Rival Upgrades
+        Rival Collection
       </Text>
       <Text style={{ color: "#777", marginTop: 6 }}>
         
@@ -29,7 +29,7 @@ export default function ShopScreen() {
         
         {/* ARENAS */}
         <Text style={{ color: "#888", fontSize: 13, marginBottom: 10 }}>
-          ARENAS
+          ARENAS · INCLUDED
         </Text>
 
         <ShopCard
@@ -42,14 +42,14 @@ export default function ShopScreen() {
         <ShopCard
           title="Training Pitch"
           subtitle="Soccer Field Arena"
-          status="locked"
+          status="owned"
           accent="#1DB954"
         />
 
         <ShopCard
           title="Practice Court"
           subtitle="Tennis Arena"
-          status="locked"
+          status="owned"
           accent="#3A7AFE"
         />
 
@@ -62,7 +62,7 @@ export default function ShopScreen() {
             marginBottom: 10
           }}
         >
-          RIVAL PERSONALITIES
+          RIVAL PERSONALITIES · INCLUDED
         </Text>
 
         <ShopCard
@@ -75,21 +75,21 @@ export default function ShopScreen() {
         <ShopCard
           title="Mocking"
           subtitle="Talks trash"
-          status="locked"
+          status="owned"
           accent="#ffaa00"
         />
 
         <ShopCard
           title="Cold"
           subtitle="Silent domination"
-          status="locked"
+          status="owned"
           accent="#3A7AFE"
         />
 
         <ShopCard
           title="Respectful"
           subtitle="Honors effort"
-          status="locked"
+          status="owned"
           accent="#00ff88"
         />
 
@@ -138,7 +138,9 @@ export default function ShopScreen() {
 
 /* ---------------- COMPONENTS ---------------- */
 
-function ShopCard({ title, subtitle, status, accent }) {
+type ShopCardProps = { title: string; subtitle: string; status: "owned" | "locked"; accent: string };
+
+function ShopCard({ title, subtitle, status, accent }: ShopCardProps) {
   const owned = status === "owned";
 
   return (
@@ -186,7 +188,7 @@ function ShopCard({ title, subtitle, status, accent }) {
   );
 }
 
-function DisabledCard({ text }) {
+function DisabledCard({ text }: { text: string }) {
   return (
     <View
       style={{
