@@ -47,3 +47,7 @@ app-example
 **/.env
 .env.local
 **/.env.local
+
+# Generated validation output
+test-results/
+rival-ai-*.png

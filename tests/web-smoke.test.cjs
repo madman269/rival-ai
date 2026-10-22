@@ -76,7 +76,11 @@ test("real browser: create rival, train, save, navigate and reopen", { timeout: 
     await page.getByText("Back", { exact: false }).first().click();
     await page.getByText("CURRENT RIVAL").waitFor({ timeout: 15000 });
     await page.getByText("ENTER RIVAL ROOM").click();
+    // A legacy deep link must preserve the current workout and XP.
+    await page.goto(base + "/logs/log", { waitUntil: "domcontentloaded" });
+    await page.getByText("LOG TRAINING").waitFor({ timeout: 15000 });
     await page.getByText("RIVAL CHAT").click();
+    await page.getByText(/Simulated rival: 35 min strength training/).waitFor({ timeout: 15000 });
     await page.getByPlaceholder("Challenge your rival…").fill("Ready for battle");
     await page.getByText("SEND", { exact: true }).click();
     await page.getByText(/AI chat is offline/i).waitFor({ timeout: 15000 });

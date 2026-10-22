@@ -86,3 +86,15 @@ Quality checks:
     node --check backend/index.js
 
 Device testing is also recommended before release.
+
+## Verify before review
+
+After starting your backend with a fresh server-side key, run:
+
+    node scripts/check-backend.cjs http://YOUR_COMPUTER_LAN_IP:3000
+
+This makes one billable AI request and fails unless health and a nonempty live reply both succeed. A successful health check alone only confirms that a key is loaded, not that the key is valid. Never pass the key to this script or put it in Expo public variables.
+
+On both iOS and Android, create a rival, log a session, close and reopen the app, confirm the session and XP persist, then send a live chat message. Record device/OS, commit, and pass/fail results in the PR. Automated browser tests do not count as native testing. Previously exposed credentials must be revoked in the provider account; deleting a tracked file does not revoke them.
+
+Dependency updates preserve the current Expo SDK. Remaining audit findings that need an SDK migration require a separate compatibility review before public deployment. Inspect them with `npm audit` and `npm audit --prefix backend`; do not blindly apply `--force` upgrades.
