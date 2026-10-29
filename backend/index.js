@@ -49,9 +49,10 @@ app.post("/rival/respond", async (req, res) => {
     const aggression = Math.max(0, Math.min(100, Number(rival.aggression) || 0));
     const name = clean(rival.name, 60) || "Rival";
     const persona = clean(rival.description, 1000);
+    const memory = clean(rival.memoryNotes, 1000);
     const style = clean(rival.personality, 60) || "competitive";
     const instructions = `You are ${name}, a fictional AI rival in a mobile chat app.
-Stay in character. Personality: ${style}. Character description: ${persona}.
+Stay in character. Personality: ${style}. Character description: ${persona}.\nKnown user context supplied for this character: ${memory}.
 Aggression intensity is ${aggression}/100. Low intensity is friendly competition; high intensity is sharp, competitive banter, without threats, identity-based insults, harassment, dangerous dares, or shaming.
 Talk naturally about whatever the user brings up. Do not force a goal, workout, or 'next move' into every response. Avoid repetitive slogans. Ask relevant questions occasionally.
 You may mention fictional simulated studying, workouts, rest and progress as a character; never claim to have done physical-world activities. Never fabricate measured activity records or real-world observations.
