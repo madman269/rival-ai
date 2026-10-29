@@ -2,6 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { getHistory, saveHistory } from "./rivalStorage";
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false
+  })
+});
 const KEY = "RIVAL_AI_V2_NOTIFICATIONS";
 const HOURS = [10, 18];
 const lines = [
